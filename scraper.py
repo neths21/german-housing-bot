@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 BASE_URL = "https://www.wg-gesucht.de"
 SEEN_FILE = Path(__file__).parent / "seen_listings.json"
 MIN_PRICE = 0
-MAX_PRICE = 700
+MAX_PRICE = 750
 # U6 stations (Garching -> Klinikum Grosshadern) plus the districts around the
 # line, since WG-Gesucht cards show districts/streets rather than stations.
 # Listings matching any of these get a "Near U6" tag; nothing is filtered out.
