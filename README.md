@@ -41,6 +41,8 @@ To send to several people, each person messages the bot once and you can create 
 
 (The bot also filters to 600-700 EUR itself, so listings outside the range are ignored either way.)
 
+**Covering more than one room type:** WG-Gesucht has separate categories (WG-Zimmer, 1-Zimmer-Wohnung, Wohnung, Haus). Run one search per category with the same filters (München, 600-700 EUR, your move-in date), sorted by newest first, and paste all the URLs into `WG_SEARCH_URL`, one per line. The bot checks each one and never sends the same listing twice. Setting a multi-line secret is easiest in the GitHub web UI; with `gh`, run `gh secret set WG_SEARCH_URL < urls.txt` using a text file with one URL per line (don't commit that file).
+
 ## Step 4: Create the GitHub repo and push these files
 
 If you already created a repo and connected it, skip to Step 5. Otherwise, in a terminal inside this project folder:

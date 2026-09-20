@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import requests
@@ -125,11 +126,30 @@ def send_telegram(token, chat_id, listing):
 
 
 def main():
-    search_url = require_env("WG_SEARCH_URL")
+    # WG_SEARCH_URL may hold several search URLs separated by whitespace/newlines.
+    search_urls = require_env("WG_SEARCH_URL").split()
     token = require_env("TELEGRAM_BOT_TOKEN")
     chat_id = require_env("TELEGRAM_CHAT_ID")
 
-    listings = parse_listings(fetch_html(search_url))
+    listings = []
+    found_ids = set()
+    failures = 0
+    for i, search_url in enumerate(search_urls):
+        if i:
+            time.sleep(3)
+        try:
+            page = parse_listings(fetch_html(search_url))
+        except requests.RequestException as exc:
+            failures += 1
+            print(f"WARNING: search {i + 1} failed to load: {type(exc).__name__}")
+            continue
+        for listing in page:
+            if listing["id"] not in found_ids:
+                found_ids.add(listing["id"])
+                listings.append(listing)
+    if failures == len(search_urls):
+        sys.exit("ERROR: all search URLs failed to load.")
+
     in_budget = [
         l for l in listings if l["price"] is not None and MIN_PRICE <= l["price"] <= MAX_PRICE
     ]
