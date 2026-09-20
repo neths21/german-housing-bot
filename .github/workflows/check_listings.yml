@@ -33,14 +33,15 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python scraper.py
 
-      - name: Commit seen_listings.json
+      - name: Commit state files
+        if: always()
         run: |
           git config user.name "housing-bot"
           git config user.email "actions@users.noreply.github.com"
-          if git diff --quiet -- seen_listings.json; then
+          git add seen_listings.json status.json
+          if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git add seen_listings.json
-            git commit -m "Update seen listings [skip ci]"
+            git commit -m "Update bot state [skip ci]"
             git push
           fi

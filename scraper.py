@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.wg-gesucht.de"
 SEEN_FILE = Path(__file__).parent / "seen_listings.json"
+STATUS_FILE = Path(__file__).parent / "status.json"
+ALERT_AFTER_FAILURES = 3
 MIN_PRICE = 0
 MAX_PRICE = 750
 # U6 stations (Garching -> Klinikum Grosshadern) plus the districts around the
@@ -140,20 +142,70 @@ def save_seen(ids):
     SEEN_FILE.write_text(json.dumps(ids, indent=2) + "\n", encoding="utf-8")
 
 
-def send_telegram(token, chat_id, listing):
-    tag = f"[Near U6: {', '.join(listing['u6'][:3])}]\n" if listing["u6"] else ""
-    text = (
-        f"{tag}{listing['title']}\n"
-        f"Price: {listing['price']} EUR\n"
-        f"District: {listing['district'] or 'n/a'}\n"
-        f"{listing['url']}"
-    )
+def send_message(token, chat_id, text):
     response = requests.post(
         f"https://api.telegram.org/bot{token}/sendMessage",
         data={"chat_id": chat_id, "text": text},
         timeout=30,
     )
     response.raise_for_status()
+
+
+def send_telegram(token, chat_id, listing):
+    tag = f"[Near U6: {', '.join(listing['u6'][:3])}]\n" if listing["u6"] else ""
+    send_message(
+        token,
+        chat_id,
+        f"{tag}{listing['title']}\n"
+        f"Price: {listing['price']} EUR\n"
+        f"District: {listing['district'] or 'n/a'}\n"
+        f"{listing['url']}",
+    )
+
+
+def load_status():
+    default = {"failures": 0, "alerted": False}
+    try:
+        data = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return default
+    return {**default, **data} if isinstance(data, dict) else default
+
+
+def save_status(status):
+    STATUS_FILE.write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
+
+
+def try_alert(token, chat_id, text):
+    try:
+        send_message(token, chat_id, text)
+        return True
+    except requests.RequestException as exc:
+        # Do not print the exception: it can contain the bot token in the URL.
+        print(f"WARNING: could not send status alert: {type(exc).__name__}")
+        return False
+
+
+def report_problem(token, chat_id, problem):
+    status = load_status()
+    status["failures"] += 1
+    if status["failures"] >= ALERT_AFTER_FAILURES and not status["alerted"]:
+        status["alerted"] = try_alert(
+            token,
+            chat_id,
+            f"WG bot problem: {problem} "
+            f"({status['failures']} runs in a row). Check the Actions tab on GitHub.",
+        )
+    save_status(status)
+    sys.exit(f"ERROR: {problem}")
+
+
+def report_ok(token, chat_id):
+    status = load_status()
+    if status["alerted"]:
+        try_alert(token, chat_id, "WG bot is working again.")
+    if status != {"failures": 0, "alerted": False}:
+        save_status({"failures": 0, "alerted": False})
 
 
 def main():
@@ -179,7 +231,12 @@ def main():
                 found_ids.add(listing["id"])
                 listings.append(listing)
     if failures == len(search_urls):
-        sys.exit("ERROR: all search URLs failed to load.")
+        report_problem(token, chat_id, "all search pages failed to load (blocked or site down?)")
+    if not listings:
+        report_problem(
+            token, chat_id, "found 0 listings on every search page (site layout may have changed)"
+        )
+    report_ok(token, chat_id)
 
     in_budget = [
         l for l in listings if l["price"] is not None and MIN_PRICE <= l["price"] <= MAX_PRICE
