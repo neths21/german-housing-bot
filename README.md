@@ -110,6 +110,10 @@ You should receive those listings in Telegram within seconds. The next run shoul
 
 After that, it runs automatically every 15 minutes. (GitHub may delay scheduled runs by a few minutes at busy times, and pauses scheduled workflows if a repo has no activity for 60 days; the bot's own commits usually count, but if it stops, re-enable it in the Actions tab.)
 
+## Near-U6 tag
+
+Listings whose text mentions a U6 station (Garching to Klinikum Großhadern) or a district along the line get a `[Near U6: ...]` line at the top of the Telegram message. Nothing is filtered out. To change the list, edit `U6_KEYWORDS` in `scraper.py` (lowercase, no umlauts: use `ue`-free forms like `hochbruck`).
+
 ## Troubleshooting: it stopped finding listings
 
 WG-Gesucht occasionally changes its HTML, which can break the scraper. If the log says `Found 0 listings` even though the website shows results:

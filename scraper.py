@@ -14,6 +14,19 @@ BASE_URL = "https://www.wg-gesucht.de"
 SEEN_FILE = Path(__file__).parent / "seen_listings.json"
 MIN_PRICE = 600
 MAX_PRICE = 700
+# U6 stations (Garching -> Klinikum Grosshadern) plus the districts around the
+# line, since WG-Gesucht cards show districts/streets rather than stations.
+# Listings matching any of these get a "Near U6" tag; nothing is filtered out.
+U6_KEYWORDS = [
+    "garching", "forschungszentrum", "hochbruck", "frottmaning", "kieferngarten",
+    "freimann", "studentenstadt", "alte heide", "nordfriedhof", "dietlindenstrasse",
+    "munchner freiheit", "giselastrasse", "universitat", "odeonsplatz",
+    "marienplatz", "sendlinger tor", "goetheplatz", "poccistrasse", "harras",
+    "implerstrasse", "partnachplatz", "westpark", "holzapfelkreuth",
+    "haderner stern", "grosshadern", "hadern", "klinikum",
+    "schwabing", "maxvorstadt", "milbertshofen", "altstadt", "lehel",
+    "ludwigsvorstadt", "isarvorstadt", "glockenbach", "sendling", "laim",
+]
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -44,6 +57,18 @@ def parse_price(text):
     if not match:
         return None
     return int(match.group(1).replace(".", ""))
+
+
+def normalize(text):
+    text = text.casefold()
+    for src, dst in (("ä", "a"), ("ö", "o"), ("ü", "u"), ("ß", "ss")):
+        text = text.replace(src, dst)
+    return text
+
+
+def u6_matches(text):
+    haystack = normalize(text)
+    return [k for k in U6_KEYWORDS if re.search(rf"\b{re.escape(k)}", haystack)]
 
 
 def parse_listings(html):
@@ -91,6 +116,7 @@ def parse_listings(html):
                 "price": price,
                 "district": district,
                 "url": url,
+                "u6": u6_matches(" ".join(card.get_text(" ").split())),
             }
         )
     return listings
@@ -111,8 +137,9 @@ def save_seen(ids):
 
 
 def send_telegram(token, chat_id, listing):
+    tag = f"[Near U6: {', '.join(listing['u6'][:3])}]\n" if listing["u6"] else ""
     text = (
-        f"{listing['title']}\n"
+        f"{tag}{listing['title']}\n"
         f"Price: {listing['price']} EUR\n"
         f"District: {listing['district'] or 'n/a'}\n"
         f"{listing['url']}"
