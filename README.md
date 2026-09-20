@@ -1,6 +1,6 @@
 # Munich WG Room Watcher
 
-A small bot that checks WG-Gesucht every 15 minutes for new WG rooms in Munich priced 600-700 EUR and sends them to you on Telegram. It runs on GitHub Actions, so no computer or server needs to stay on.
+A small bot that checks WG-Gesucht every 15 minutes for new WG rooms in Munich priced up to 700 EUR and sends them to you on Telegram. It runs on GitHub Actions, so no computer or server needs to stay on.
 
 You need: a free GitHub account, the Telegram app, and (optionally, but easiest) the GitHub CLI `gh` and `git` installed and logged in.
 
@@ -39,7 +39,7 @@ To send to several people, each person messages the bot once and you can create 
 3. Click search.
 4. Copy the full address from your browser's address bar. That is your **search URL**.
 
-(The bot also filters to 600-700 EUR itself, so listings outside the range are ignored either way.)
+(The bot also filters to 0-700 EUR itself, so listings outside the range are ignored either way.)
 
 **Covering more than one room type:** WG-Gesucht has separate categories (WG-Zimmer, 1-Zimmer-Wohnung, Wohnung, Haus). Run one search per category with the same filters (München, 600-700 EUR, your move-in date), sorted by newest first, and paste all the URLs into `WG_SEARCH_URL`, one per line. The bot checks each one and never sends the same listing twice. Setting a multi-line secret is easiest in the GitHub web UI; with `gh`, run `gh secret set WG_SEARCH_URL < urls.txt` using a text file with one URL per line (don't commit that file).
 

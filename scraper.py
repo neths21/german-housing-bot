@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.wg-gesucht.de"
 SEEN_FILE = Path(__file__).parent / "seen_listings.json"
-MIN_PRICE = 600
+MIN_PRICE = 0
 MAX_PRICE = 700
 # U6 stations (Garching -> Klinikum Grosshadern) plus the districts around the
 # line, since WG-Gesucht cards show districts/streets rather than stations.
@@ -87,10 +87,14 @@ def parse_listings(html):
         if not listing_id or listing_id in seen_ids:
             continue
 
-        link = card.select_one("h3 a[href], a[href*='.html']")
+        link = card.select_one(
+            "h2 a[href], h3 a[href], a.detailansicht[href], a[href*='.html']"
+        )
         if not link:
             continue
-        title = " ".join(link.get_text().split())
+        title = " ".join(link.get_text().split()) or (link.get("title") or "").replace(
+            "Anzeige ansehen:", ""
+        ).strip()
         url = link["href"]
         if url.startswith("/"):
             url = BASE_URL + url
